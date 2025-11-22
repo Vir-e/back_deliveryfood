@@ -1,6 +1,6 @@
 from config.database import get_db, Session
-from models.domain.carta import Carta
-from datamappers.carta_datamapper import CartaSchema
+from models.carta_model import CartaModel
+from infrastructure.datamappers.schemas.carta_schema import CartaSchema
 
 class CartaRepository:
     def __init__(self):
@@ -14,7 +14,7 @@ class CartaRepository:
     def get_carta(self):
         db = self._get_session()
         try:
-            cartas = db.query(Carta).all()
+            cartas = db.query(CartaModel).all()
             # Expulsar los objetos de la sesión para que puedan ser serializados
             for carta in cartas:
                 db.expunge(carta)
@@ -46,16 +46,13 @@ class CartaRepository:
         db = self._get_session()
         try:
             # Primero obtener la carta existente
-            carta_existente = db.query(Carta).filter(Carta.id == carta_model.id).first()
+            carta_existente = db.query(CartaModel).filter(CartaModel.id == carta_model.id).first()
             if not carta_existente:
                 return None
             
             # Actualizar los campos
             carta_existente.nombre = carta_model.nombre
             carta_existente.precio = carta_model.precio
-            carta_existente.sin_gluten = carta_model.sin_gluten
-            carta_existente.sin_huevo = carta_model.sin_huevo
-            carta_existente.vegano = carta_model.vegano
             
             db.commit()
             # Expulsar el objeto de la sesión antes de cerrarla
@@ -73,7 +70,7 @@ class CartaRepository:
     def delete_carta(self, id):
         db = self._get_session()
         try:
-            carta_model = db.query(Carta).filter(Carta.id == id).first()
+            carta_model = db.query(CartaModel).filter(CartaModel.id == id).first()
             if not carta_model:
                 return False
             db.delete(carta_model)
