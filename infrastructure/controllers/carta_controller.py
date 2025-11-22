@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.carta_service import CartaService
+from application.services.carta_service import CartaService
 
 carta_controller = Blueprint('carta_controller', __name__)
 

@@ -1,6 +1,6 @@
-from repository.carta_repository import CartaRepository
-from datamappers.carta_datamapper import CartaSchema
-from models.domain.carta import Carta
+from repositories.carta_repository import CartaRepository
+from infrastructure.datamappers.schemas.carta_schema import CartaSchema
+from models.carta_model import CartaModel
 
 
 class CartaService:
@@ -15,7 +15,7 @@ class CartaService:
         return self.schema_list.dump(cartas_model)
 
     def create_carta(self, carta_data):
-        carta_model = Carta(
+        carta_model = CartaModel(
             nombre=carta_data['nombre'],
             precio=carta_data['precio'],
             sin_gluten=carta_data['sin_gluten'],
@@ -29,7 +29,7 @@ class CartaService:
         return None
 
     def update_carta(self, id, carta_data):
-        carta_model = Carta(
+        carta_model = CartaModel(
             id=id,
             nombre=carta_data['nombre'],
             precio=carta_data['precio'],
