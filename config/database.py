@@ -3,13 +3,15 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import text
 
-# cambiar el nombre de localhost al nombre del contenedor de la db dentro de la misma red de docker
-engine = create_engine('postgresql+psycopg2://postgres:1234@localhost:5432/deliveryfood')
+from settings import HOST, PORT, DATABASE
+
+#engine = create_engine(f'postgresql+psycopg2://postgres:1234@{HOST}:5432/deliveryfood')
+engine = create_engine(f'postgresql+psycopg2://postgres:1234@{HOST}:{PORT}/{DATABASE}')
+
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# Importar los modelos
-#from models.domain.carta import Carta
+
 
 def get_db():
     db = Session()
