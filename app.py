@@ -1,17 +1,22 @@
 # app.py (ACTUALIZADO - Añadiendo el setup de DI)
 from flask import Flask, g
-from infrastructure.controllers.carta_controller import carta_controller
+from infrastructure.controllers.carta_controller import carta_controller, set_carta_service
 from infrastructure.controllers.productos_controller import productos_controller
 from infrastructure.controllers.usuarios_controller import usuarios_controller, set_usuario_service # Importamos la función de inyección
 
 # Importar las clases de dependencia necesarias
 from application.services.usuario_service import UsuarioService
-from infrastructure.repositories.usuario_repository import UsuarioRepository
+from repositories.usuario_repository import UsuarioRepository
 from infrastructure.datamappers.schemas.usuario_schema import UsuarioSchema
 from config.database import get_db # Necesitamos la función generadora de sesiones
 
+from application.services.carta_service import CartaService
+from repositories.carta_repository import CartaRepository
+from infrastructure.datamappers.schemas.carta_schema import CartaSchema
+
 from flask_cors import CORS
 import settings
+
 
 # --- Creación de la Aplicación (Application Factory Pattern) ---
 
@@ -62,6 +67,24 @@ def create_app():
         )
         return usuario_service
 
+
+        # FUNCIÓN INYECTABLE PARA CARTA
+    def get_injected_carta_service():
+        db_session = getattr(g, 'db', None)
+        if db_session is None:
+             raise RuntimeError("La sesión de la base de datos (g.db) no está disponible.")
+             
+        # Inyección: Repositorio depende de la Sesión de DB
+        carta_repository = CartaRepository(db=db_session)
+        
+        # Inyección: Servicio depende del Repositorio y los Schemas
+        carta_service = CartaService(
+            carta_repository=carta_repository,
+            schema=CartaSchema(),
+            schema_list=CartaSchema(many=True)
+        )
+        return carta_service
+
     # 3. Inyección del Servicio en el Controlador (Inyección a nivel de aplicación)
     # Como Flask no soporta DI nativa en las rutas, inyectamos un "Singleton-per-request-aware" 
     # a través de un proxy que siempre llama a la función anterior (get_injected_usuario_service)
@@ -76,8 +99,16 @@ def create_app():
             service_instance = get_injected_usuario_service()
             return getattr(service_instance, name)
 
+    # PROXY PARA CARTA (NUEVO)
+    class CartaServiceProxy:
+        def __getattr__(self, name):
+            service_instance = get_injected_carta_service()
+            return getattr(service_instance, name)
+
+
     # Inyectamos el Proxy en el controlador al inicio
     set_usuario_service(UsuarioServiceProxy()) 
+    set_carta_service(CartaServiceProxy())
 
 
     @app.route('/')

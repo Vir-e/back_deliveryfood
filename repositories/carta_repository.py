@@ -1,84 +1,79 @@
-from config.database import get_db, Session
+# infrastructure/repositories/carta_repository.py (ACTUALIZADO)
 from models.carta_model import CartaModel
 from infrastructure.datamappers.schemas.carta_schema import CartaSchema
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 class CartaRepository:
-    def __init__(self):
-        # No mantener la sesión como atributo de instancia
-        pass
+    """
+    La sesión de DB (db) es inyectada en el constructor.
+    """
+    def __init__(self, db: Session): 
+        # ⚠️ INYECCIÓN DE DEPENDENCIA: Recibe la sesión de DB
+        self.db = db
 
-    def _get_session(self):
-        """Obtener una nueva sesión"""
-        return next(get_db())
+    # El método _get_session() ha sido ELIMINADO
 
     def get_carta(self):
-        db = self._get_session()
         try:
-            cartas = db.query(CartaModel).all()
-            # Expulsar los objetos de la sesión para que puedan ser serializados
+            cartas = self.db.query(CartaModel).all()
+            # Expulsar los objetos de la sesión
             for carta in cartas:
-                db.expunge(carta)
+                self.db.expunge(carta)
             return cartas
-        except Exception as e:
-            print(e)
-            db.rollback()
+        except SQLAlchemyError as e:
+            print(f"Error al obtener cartas: {e}")
+            self.db.rollback()
             return []
-        finally:
-            db.close()
+        # ELIMINADO: finally: db.close()
 
     def create_carta(self, carta_model):
-        db = self._get_session()
         try:
-            db.add(carta_model)
-            db.commit()
-            db.refresh(carta_model)
+            self.db.add(carta_model)
+            self.db.commit()
+            self.db.refresh(carta_model)
             # Expulsar el objeto de la sesión
-            db.expunge(carta_model)
+            self.db.expunge(carta_model)
             return carta_model
-        except Exception as e:
-            print(e)
-            db.rollback()
+        except SQLAlchemyError as e:
+            print(f"Error al crear carta: {e}")
+            self.db.rollback()
             return None
-        finally:
-            db.close()
+        # ELIMINADO: finally: db.close()
 
     def update_carta(self, carta_model):
-        db = self._get_session()
         try:
-            # Primero obtener la carta existente
-            carta_existente = db.query(CartaModel).filter(CartaModel.id == carta_model.id).first()
+            carta_existente = self.db.query(CartaModel).filter(CartaModel.id == carta_model.id).first()
             if not carta_existente:
                 return None
             
-            # Actualizar los campos
             carta_existente.nombre = carta_model.nombre
             carta_existente.precio = carta_model.precio
             
-            db.commit()
-            # Expulsar el objeto de la sesión antes de cerrarla
-            db.refresh(carta_existente)
-            schema = CartaSchema()
+            self.db.commit()
+            self.db.refresh(carta_existente)
+            
+            # Serializar el resultado aquí para devolver un DTO/dict
+            schema = CartaSchema() 
             resultado = schema.dump(carta_existente)
+            self.db.expunge(carta_existente)
             return resultado
-        except Exception as e:
-            print(e)
-            db.rollback()
+        except SQLAlchemyError as e:
+            print(f"Error al actualizar carta: {e}")
+            self.db.rollback()
             return None
-        finally:
-            db.close()
+        # ELIMINADO: finally: db.close()
 
     def delete_carta(self, id):
-        db = self._get_session()
         try:
-            carta_model = db.query(CartaModel).filter(CartaModel.id == id).first()
+            carta_model = self.db.query(CartaModel).filter(CartaModel.id == id).first()
             if not carta_model:
                 return False
-            db.delete(carta_model)
-            db.commit()
+            self.db.delete(carta_model)
+            self.db.commit()
             return True
-        except Exception as e:
-            print(e)
-            db.rollback()
+        except SQLAlchemyError as e:
+            print(f"Error al eliminar carta: {e}")
+            self.db.rollback()
             return False
-        finally:
-            db.close()
+        # ELIMINADO: finally: db.close()
